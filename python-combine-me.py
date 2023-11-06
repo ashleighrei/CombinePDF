@@ -1,21 +1,29 @@
 import streamlit as st
-import fitz  # PyMuPDF
-import tempfile
 import os
+import PyPDF2
+from io import BytesIO
+import tempfile
 
 # Custom CSS and Streamlit setup
 # ... (same as in your previous code)
 
-# Function to combine PDFs using PyMuPDF (Fitz)
+# Function to combine PDFs using PyPDF2
 def combine_pdfs(input_files, output_file):
-    try:
-        pdf_merger = fitz.open()
-        for input_file in input_files:
-            pdf_document = fitz.open(input_file)
-            pdf_merger.insert_pdf(pdf_document)
+    pdf_merger = PyPDF2.PdfFileMerger()
 
-        pdf_merger.save(output_file)
-        pdf_merger.close()
+    try:
+        for input_file in input_files:
+            pdf_merger.append(input_file)
+
+        # Write the combined PDF to a BytesIO buffer
+        pdf_buffer = BytesIO()
+        pdf_merger.write(pdf_buffer)
+        pdf_buffer.seek(0)  # Reset the buffer position
+
+        # Save the combined PDF with the specified output file name and PDF extension
+        with open(output_file, 'wb') as out_pdf:
+            out_pdf.write(pdf_buffer.read())
+
         return True
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
@@ -30,8 +38,8 @@ if st.button("Combine") and uploaded_files:
     # Output file where the combined PDF will be saved
     output_file_path = os.path.join(tempfile.gettempdir(), output_file_name)
 
-    # Call the function to combine the PDFs using PyMuPDF
-    if combine_pdfs(uploaded_files, output_file_path):
+    # Call the function to combine the PDFs using PyPDF2
+    if combine_pdfs(uploaded_files, output_file_path):  # Use uploaded_files, not input_files
         st.success("PDFs successfully combined.")
 
         # Display a "Download" button for the combined PDF
