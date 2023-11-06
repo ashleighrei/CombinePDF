@@ -1,80 +1,36 @@
 import streamlit as st
 import os
 import PyPDF2
+from PyPDF2.generic import BooleanObject, NameObject
 from io import BytesIO
 import tempfile
-import subprocess
 
-# Custom CSS to set the font, colors, and font-weight
-css = f"""
-<style>
-/* Set the font and font-weight for the title */
-.title {{
-    font-family: 'Poppins', sans-serif;
-    font-weight: 700;
-}}
-
-/* Set the font, colors, and font-weight for the rest of the app */
-body {{
-    font-family: 'Poppins', sans-serif;
-}}
-</style>
-"""
-
-st.markdown(css, unsafe_allow_html=True)
+@@ -24,7 +25,7 @@
 
 st.markdown('<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">', unsafe_allow_html=True)
 
-# Function to combine and compress PDFs using PyPDF2 and ghostscript
-def combine_pdfs(input_files, output_file):
-    try:
-        # Create a PDF merger object
-        pdf_merger = PyPDF2.PdfFileMerger()
-
-        for input_file in input_files:
-            pdf_merger.append(input_file)
-
-        # Write the combined PDF to a BytesIO buffer
-        pdf_buffer = BytesIO()
-        pdf_merger.write(pdf_buffer)
-        pdf_buffer.seek(0)  # Reset the buffer position
-
-        # Save the combined PDF with the specified output file name and PDF extension
-        with open(output_file, 'wb') as out_pdf:
-            out_pdf.write(pdf_buffer.read())
-
-        # Compress the combined PDF using ghostscript
-        compressed_output_file = output_file.replace(".pdf", "_compressed.pdf")
-        subprocess.run(["gs", "-sDEVICE=pdfwrite", "-dCompatibilityLevel=1.4", "-dNOPAUSE", "-dQUIET", "-dBATCH", f"-sOutputFile={compressed_output_file}", output_file])
-
-        return compressed_output_file
-
-    except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
-        return None
-
-# Rest of your Streamlit app code (as provided previously)
-# ...
-
-
 # Function to combine PDFs using PyPDF2
+# Function to combine and compress PDFs using PyPDF2
 def combine_pdfs(input_files, output_file):
     # Create a PDF merger object
     pdf_merger = PyPDF2.PdfFileMerger()
-
-    try:
-        # Iterate through input PDF files and append them to the merger
-        for input_file in input_files:
-            pdf_merger.append(input_file)
-
-        # Write the combined PDF to a BytesIO buffer
-        pdf_buffer = BytesIO()
+@@ -39,57 +40,24 @@ def combine_pdfs(input_files, output_file):
         pdf_merger.write(pdf_buffer)
         pdf_buffer.seek(0)  # Reset the buffer position
 
         # Save the combined PDF with the specified output file name and PDF extension
+        # Apply the FlateDecode filter for lossless compression
+        pdf_writer = PyPDF2.PdfFileWriter()
+        pdf_reader = PyPDF2.PdfFileReader(pdf_buffer)
+        for page_num in range(pdf_reader.getNumPages()):
+            page = pdf_reader.getPage(page_num)
+            page.compressContentStreams()
+            pdf_writer.addPage(page)
+
+        # Save the compressed combined PDF with the specified output file name and PDF extension
         with open(output_file, 'wb') as out_pdf:
             out_pdf.write(pdf_buffer.read())
+            pdf_writer.write(out_pdf)
 
         return True
 
@@ -116,6 +72,8 @@ if st.button("Combine") and input_files:
     # Call the function to combine the PDFs
     if combine_pdfs(input_files, output_file_path):
         st.success("PDFs successfully combined.")
+# Rest of your Streamlit app code (as provided previously)
+# ...
 
         # Display a "Download" button for the combined PDF
         with open(output_file_path, "rb") as file:
