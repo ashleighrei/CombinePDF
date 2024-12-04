@@ -1,33 +1,32 @@
 import streamlit as st
 import os
-import PyPDF2
+from PyPDF2 import PdfMerger
 from io import BytesIO
 import tempfile
 
 # Custom CSS to set the font, colors, and font-weight
-css = f"""
+css = """
 <style>
 /* Set the font and font-weight for the title */
-.title {{
+.title {
     font-family: 'Poppins', sans-serif;
     font-weight: 700;
-}}
+}
 
 /* Set the font, colors, and font-weight for the rest of the app */
-body {{
+body {
     font-family: 'Poppins', sans-serif;
-}}
+}
 </style>
 """
 
 st.markdown(css, unsafe_allow_html=True)
-
 st.markdown('<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">', unsafe_allow_html=True)
 
 # Function to combine PDFs using PyPDF2
 def combine_pdfs(input_files, output_file):
     # Create a PDF merger object
-    pdf_merger = PyPDF2.PdfFileMerger()
+    pdf_merger = PdfMerger()
 
     try:
         # Iterate through input PDF files and append them to the merger
@@ -60,7 +59,7 @@ input_files = []
 
 # File upload widgets for individual PDFs (based on user input)
 for i in range(num_files):
-    file = st.file_uploader(f"Upload PDF {i + 1}", type=["pdf"])
+    file = st.file_uploader(f"Upload PDF {i + 1}", type=["pdf"], key=f"file_uploader_{i}")
     if file:
         input_files.append(file)
 
@@ -69,7 +68,7 @@ output_file_name = st.text_input("Enter a file name for the combined PDF file (o
 
 # Default output file name
 if not output_file_name:
-    output_file_name = "incognito_noname_combined_file.pdf"
+    output_file_name = "combined_file.pdf"
 else:
     # Ensure that the output file name has a .pdf extension
     if not output_file_name.lower().endswith(".pdf"):
@@ -90,6 +89,7 @@ if st.button("Combine") and input_files:
                 label="Download",
                 data=file.read(),
                 file_name=output_file_name,
+                mime="application/pdf"
             )
 else:
     st.warning("Please upload at least one PDF file :)")
